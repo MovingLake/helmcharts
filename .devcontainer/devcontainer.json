@@ -1,0 +1,42 @@
+{
+    "image": "mcr.microsoft.com/vscode/devcontainers/base:ubuntu-22.04",
+    "postCreateCommand": "bash .devcontainer/post_create.sh",
+    "features": {
+        "common": {
+            "username": "vscode",
+            "uid": "automatic",
+            "gid": "automatic",
+            "installZsh": true,
+            "installOhMyZsh": true,
+            "upgradePackages": true,
+            "nonFreePackages": false
+        },
+        "docker-in-docker": {
+            "version": "latest",
+            "moby": true,
+            "dockerDashComposeVersion": "v1"
+        },
+        "github-cli": "latest",
+        "aws-cli": "latest",
+        "kubectl-helm-minikube": {
+            "version": "latest",
+            "helm": "latest",
+            "minikube": "none"
+        }
+    },
+    "remoteUser": "vscode",
+    "customizations": {
+        "vscode": {
+            "extensions": [
+                "eamodio.gitlens",
+                "GitHub.copilot",
+                "GitHub.vscode-pull-request-github",
+                "streetsidesoftware.code-spell-checker",
+                "rangav.vscode-thunder-client"
+            ],
+            "settings": {
+                "editor.formatOnSave": true,
+            }
+        }
+    }
+}

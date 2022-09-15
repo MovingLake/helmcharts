@@ -1,0 +1,3 @@
+This service does not expose any ports.
+
+We recommend that you inspect the logs to verify that things are working as expected.

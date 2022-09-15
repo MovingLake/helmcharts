@@ -1,0 +1,91 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "pg-webhook.fullname" . }}
+  labels:
+    {{- include "pg-webhook.labels" . | nindent 4 }}
+spec:
+  {{- if not .Values.autoscaling.enabled }}
+  replicas: {{ .Values.replicaCount }}
+  {{- end }}
+  selector:
+    matchLabels:
+      {{- include "pg-webhook.selectorLabels" . | nindent 6 }}
+  template:
+    metadata:
+      {{- with .Values.podAnnotations }}
+      annotations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      labels:
+        {{- include "pg-webhook.selectorLabels" . | nindent 8 }}
+    spec:
+      {{- with .Values.imagePullSecrets }}
+      imagePullSecrets:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      serviceAccountName: {{ include "pg-webhook.serviceAccountName" . }}
+      securityContext:
+        {{- toYaml .Values.podSecurityContext | nindent 8 }}
+      containers:
+        - name: {{ .Chart.Name }}
+          securityContext:
+            {{- toYaml .Values.securityContext | nindent 12 }}
+          image: "{{ .Values.image.repository }}:{{ .Values.image.tag | default .Chart.AppVersion }}"
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          ports: []
+          # TBD: we need a way to check for liveness
+          # livenessProbe:
+          #   httpGet:
+          #     path: /
+          #     port: http
+          readinessProbe:
+            exec:
+              command:
+              - ls
+              - /tmp/pg-webhook
+          env:
+            - name: PG_DNS
+              {{- if .Values.postgres.secret.enabled }}
+              valueFrom:
+                secretKeyRef:
+                  name: {{ .Values.postgres.secret.name }}
+                  key: {{ .Values.postgres.secret.key }}
+              {{- else }}
+              value: {{ .Values.postgres.url }}
+              {{- end }}
+            - name: REPLICATION_SLOT_NAME
+              value: {{ .Values.postgres.replicationSlot.name }}
+            - name: WEBHOOK_SERVICE_URL
+              value: {{ .Values.webhook.url }}
+            - name: SQLITE_LOCATION
+              {{- if .Values.persistence.enabled }}
+              value: "{{ .Values.persistence.path}}/sqlite.db"
+              {{- else }}
+              value: /tmp/sqlite.db
+              {{- end }}
+          {{- if .Values.persistence.enabled }}
+          volumeMounts:
+            - name: data-volume
+              mountPath: {{ .Values.persistence.path }}
+          {{- end }}
+          resources:
+            {{- toYaml .Values.resources | nindent 12 }}
+      {{- with .Values.nodeSelector }}
+      nodeSelector:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.affinity }}
+      affinity:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.tolerations }}
+      tolerations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      volumes:
+        {{- if .Values.persistence.enabled }}
+        - name: data-volume
+          persistentVolumeClaim:
+            claimName: {{ include "pg-webhook.fullname" . }}
+        {{- end }}
